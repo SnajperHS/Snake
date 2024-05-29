@@ -1,69 +1,72 @@
-from turtle import Screen, Turtle
-import time
-from snake import Snake
-from food import Food
-from scoreboard import Scoreboard
+import pygame
+import random
+import math
 
-def exit_game():
-    screen.bye()
+class Firework:
+    def __init__(self, x, y, color):
+        self.x = x
+        self.y = y
+        self.color = color
+        self.radius = random.randint(2, 4)
+        self.angle = random.uniform(0, 2 * math.pi)
+        self.speed = random.uniform(3, 7)
+        self.lifetime = random.randint(20, 60)
 
-screen = Screen()
+    def update(self):
+        self.x += self.speed * math.cos(self.angle)
+        self.y += self.speed * math.sin(self.angle)
+        self.lifetime -= 1
 
-screen.setup(width=600, height=600)
+    def is_alive(self):
+        return self.lifetime > 0
 
-screen.bgcolor("black")
+class FireworkAnimation:
+    def __init__(self, screen_width=800, screen_height=600):
+        self.screen_width = screen_width
+        self.screen_height = screen_height
+        self.colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0), (255, 0, 255), (0, 255, 255)]
+        self.fireworks = []
+        self.running = True
 
-screen.title("Snake Game")
-screen.tracer(0)
+        # Inicjalizacja Pygame
+        pygame.init()
+        self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
+        pygame.display.set_caption("Fajerwerki")
 
+    def create_firework(self):
+        x = random.randint(0, self.screen_width)
+        y = random.randint(self.screen_height // 2, self.screen_height)
+        color = random.choice(self.colors)
+        for _ in range(random.randint(50, 100)):
+            self.fireworks.append(Firework(x, y, color))
 
-snake = Snake()
-food = Food()
-scoreboard = Scoreboard()
+    def update_fireworks(self):
+        self.fireworks = [f for f in self.fireworks if f.is_alive()]
+        for f in self.fireworks:
+            f.update()
 
-screen.listen()
-screen.onkey(snake.up, "Up")
-screen.onkey(snake.down, "Down")
-screen.onkey(snake.left, "Left")
-screen.onkey(snake.right, "Right")
-screen.onkey(exit_game, "Escape")
+    def draw_fireworks(self):
+        self.screen.fill((0, 0, 0))
+        for f in self.fireworks:
+            pygame.draw.circle(self.screen, f.color, (int(f.x), int(f.y)), f.radius)
+        pygame.display.flip()
 
+    def run(self):
+        clock = pygame.time.Clock()
+        while self.running:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self.running = False
 
-game_is_on = True
+            if random.randint(0, 10) == 0:  # Tworzenie fajerwerków z pewną losowością
+                self.create_firework()
 
-while game_is_on:
-    screen.update()
-    time.sleep(0.1)
-    snake.move()
-    #food
-    if snake.head.distance(food) < 15:
-        food.refresh()
-        snake.extend()
-        scoreboard.increase_score()
+            self.update_fireworks()
+            self.draw_fireworks()
+            clock.tick(90)
 
-    #collision
-    if snake.head.xcor() > 280 or snake.head.xcor() < -280 or snake.head.ycor() > 280 or snake.head.ycor() < -280:
-        scoreboard.reset()
-        snake.reset()
+        pygame.quit()
 
-
-    #with tail
-    for segment in snake.segments:
-        if segment == snake.head:
-            pass
-        elif snake.head.distance(segment) < 10:
-            scoreboard.reset()
-            snake.reset()
-
-
-
-
-
-
-
-
-
-
-
-
-
+if __name__ == "__main__":
+    animation = FireworkAnimation()
+    animation.run()

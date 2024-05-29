@@ -1,0 +1,94 @@
+import pygame
+import subprocess
+from create_player import Player, PLAYER_SIZE_W, PLAYER_SIZE_H
+python_path = "C:/Users/patry/PycharmProjects/kasyno/c/Scripts/python.exe"
+script_path = "Black_Jack.py"
+
+# Constants
+SCREEN_WIDTH = 1450
+SCREEN_HEIGHT = 768
+
+# Lokalizacje stołów i obszary interakcji
+TABLE_RECTS = [
+    pygame.Rect(120, 80, 510, 250),
+    pygame.Rect(800, 80, 510, 250),
+    pygame.Rect(120, 430, 510, 250),
+    pygame.Rect(830, 430, 510, 250)
+]
+
+# Load button image
+button_image = pygame.image.load('przycisk.png')  # Make sure the button image file exists
+
+
+# Button class
+class ImageButton:
+    def __init__(self, center_pos, image, scale=0.20):
+        self.original_image = image
+        scaled_width = int(self.original_image.get_width() * scale)
+        scaled_height = int(self.original_image.get_height() * scale)
+        self.image = pygame.transform.scale(self.original_image, (scaled_width, scaled_height))
+        self.rect = self.image.get_rect(center=center_pos)
+        self.visible = False  # Controls visibility
+
+    def draw(self, screen):
+        if self.visible:
+            screen.blit(self.image, self.rect.topleft)
+
+    def update_position(self, center_pos):
+        self.rect.center = center_pos  # Update button position
+
+
+def ruletka():
+    pygame.init()
+    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+    pygame.display.set_caption('Roulette Game Simulation')
+
+    background_image = pygame.image.load('rooms/roulett.jpg')
+    background_image = pygame.transform.scale(background_image, (SCREEN_WIDTH, SCREEN_HEIGHT))
+
+    player_images = {
+        'down': pygame.image.load('player/front.png'),
+        'up': pygame.image.load('player/back.png'),
+        'left': pygame.image.load('player/left.png'),
+        'right': pygame.image.load('player/right.png')
+    }
+    for key in player_images:
+        player_images[key] = pygame.transform.scale(player_images[key], (PLAYER_SIZE_W, PLAYER_SIZE_H))
+
+    player = Player(player_images)
+    button = ImageButton((0, 0), button_image)  # Initialize off-screen
+
+    running = True
+    clock = pygame.time.Clock()
+    active_table = None
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN and active_table:
+                subprocess.call([python_path, script_path])
+
+        keys = pygame.key.get_pressed()
+        player.move(keys)
+
+        screen.blit(background_image, (0, 0))
+        player.draw(screen)
+
+        interaction = False
+        for table_rect in TABLE_RECTS:
+            # pygame.draw.rect(screen, (0, 255, 0), table_rect, 2)  # Comment this out to hide green rectangles
+            if player.check_interaction([table_rect]):
+                interaction = True
+                button.update_position(table_rect.center)  # Update button position to current table center
+                active_table = table_rect
+
+        button.visible = interaction  # Show button when interacting
+        button.draw(screen)
+
+        pygame.display.flip()
+        clock.tick(30)
+
+    pygame.quit()
+
+if __name__ == '__main__':
+    ruletka()
