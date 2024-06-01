@@ -1,9 +1,23 @@
 import pygame
 from class_money_display import MoneyDisplay, BeltImage
-from dict_number_rects import number_rects
+import os
 
-# Global variable to store the final bet
-final_bet = 0
+# Funkcja do odczytu final_bet z pliku
+def read_final_bet():
+    if os.path.exists("final_bet.txt"):
+        with open("final_bet.txt", "r") as file:
+            try:
+                return int(file.read())
+            except ValueError:
+                return 0
+    return 0
+
+# Funkcja do zapisu final_bet do pliku
+def write_final_bet(value):
+    with open("final_bet.txt", "w") as file:
+        file.write(str(value))
+
+final_bet = read_final_bet()
 
 class MoneyBeltDisplay(MoneyDisplay, BeltImage):
     def __init__(self, font, money_file="money.txt", belt_image_path="belt.png", scale=1.0):
@@ -26,7 +40,7 @@ class BetButtons:
     def __init__(self, font):
         self.font = font
         self.buttons = self.load_buttons()
-        self.current_bet = 0
+        self.current_bet = final_bet
         self.bets = {}
         self.bet_placed = False  # Flag to indicate if bet is placed
 
@@ -44,14 +58,9 @@ class BetButtons:
         y_position = 415  # Adjusted to fit within screen height
         for key, button in buttons.items():
             button['rect'] = button['image'].get_rect(topleft=(x_start, y_position))
-            x_start += button['rect'].width   # Add spacing between buttons
-
-        # Center the "Place Bet" button on the screen
+            x_start += button['rect'].width  # Add spacing between buttons
         place_bet_button = buttons['PLACE BET']
-        screen_width = pygame.display.get_surface().get_width()
-        screen_height = pygame.display.get_surface().get_height()
-        place_bet_button['rect'] = place_bet_button['image'].get_rect(center=(900//2, 300))
-        # 538, 330
+        place_bet_button['rect'] = place_bet_button['image'].get_rect(center=(900 // 2, 300))
 
         return buttons
 
@@ -69,19 +78,14 @@ class BetButtons:
         for button_info in self.buttons.values():
             screen.blit(button_info['image'], button_info['rect'])
 
-        # Create a surface for the text with a white background
         bet_text = f"Current Bet: ${self.current_bet}"
         bet_display = self.font.render(bet_text, True, (0, 0, 0), (255, 255, 255))  # Text with black color and white background
-
-        # Get the rectangle of the text surface to position it
         bet_rect = bet_display.get_rect()
-        bet_rect.topleft = (360, 350)  # Adjusted position to fit within screen height
-
-        # Blit the text surface onto the screen
+        bet_rect.topleft = (360, 350)
         screen.blit(bet_display, bet_rect)
 
     def handle_event(self, event, money_display):
-        global final_bet  # Declare the global variable to modify it
+        global final_bet
 
         if event.type == pygame.MOUSEBUTTONDOWN:
             pos = pygame.mouse.get_pos()
@@ -91,6 +95,7 @@ class BetButtons:
                     if bet_amount == 'clear':
                         self.current_bet = 0
                         self.bets.clear()
+                        write_final_bet(0)
                     elif bet_amount == 'all-in':
                         self.current_bet = money_display.money
                     elif bet_amount == 'place_bet':
@@ -100,62 +105,34 @@ class BetButtons:
                     else:
                         self.current_bet += bet_amount
                     print(f"Current bet: {self.current_bet}")
-            for number, rect in number_rects.items():
-                if rect.collidepoint(pos):
-                    if number not in self.bets:
-                        self.bets[number] = self.current_bet
-                    print(f"Bet placed on number: {number}")
 
 
 def main():
-    # Initialize Pygame
     pygame.init()
-
-    # Screen dimensions and setup
     SCREEN_WIDTH, SCREEN_HEIGHT = 900, 515
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     pygame.display.set_caption("Money Display")
-
-    # Initialize font
     font = pygame.font.Font(None, 36)
-
-    # Create MoneyBeltDisplay instance
     money_belt_display = MoneyBeltDisplay(font, "money.txt", "belt.png", 0.15)
-
-    # Create BetButtons instance
     bet_buttons = BetButtons(font)
-
-    # Load background image
     background = pygame.image.load("table.PNG")
-
-    # Main loop
     running = True
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
             bet_buttons.handle_event(event, money_belt_display)
-
-        # Check if the bet is placed
         if bet_buttons.bet_placed:
             running = False
-
-        # Draw background
         screen.blit(background, (0, 0))
-
-        # Draw money belt display
         money_belt_display.draw(screen)
-
-        # Draw bet buttons
         bet_buttons.draw(screen)
-
-        # Update display
         pygame.display.flip()
-
-    # Print final bet value for debugging purposes
     print(f"Final bet: {final_bet}")
 
-    # Quit Pygame
+    # Zapisanie wartości final_bet do pliku final_bet.txt
+    write_final_bet(final_bet)
+
     pygame.quit()
 
 
